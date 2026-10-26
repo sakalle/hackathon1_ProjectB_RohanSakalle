@@ -5,15 +5,28 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { cityLabel } from "@/lib/airports";
 import { cabinLabel, cppLabel, eur, formatDuration, pct, pointsLabel, prettyDate, shortDate, weekday } from "@/lib/format";
-import type { SearchRow } from "@/lib/db";
-import type { Offer } from "@/lib/types";
+import type { BuiltSearch, Offer, SearchInput } from "@/lib/types";
+
+type SearchView = {
+  id: string;
+  mode: string;
+  title: string;
+  input: SearchInput;
+  normalPrice: number;
+  bestPrice: number;
+  savingsEur: number;
+  savingsPct: number;
+  offers: Offer[];
+  calendar: BuiltSearch["calendar"];
+  notes: string[];
+};
 
 export function ResultsView({
   search,
   savedOfferIds,
   bookings,
 }: {
-  search: SearchRow;
+  search: SearchView;
   savedOfferIds: string[];
   bookings: Record<string, string>;
 }) {

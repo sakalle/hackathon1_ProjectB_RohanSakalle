@@ -131,9 +131,13 @@ function iataCodes(text: string) {
 function cityCodes(text: string) {
   const lower = text.toLowerCase();
   const hits: { index: number; code: string }[] = [];
-  const cities = [...new Map(AIRPORTS.map((airport) => [airport.city.toLowerCase(), airport])).values()].sort(
-    (a, b) => b.city.length - a.city.length,
-  );
+  const chosen = new Map<string, (typeof AIRPORTS)[number]>();
+  for (const airport of AIRPORTS) {
+    const key = airport.city.toLowerCase();
+    const existing = chosen.get(key);
+    if (!existing || airport.tier < existing.tier) chosen.set(key, airport);
+  }
+  const cities = [...chosen.values()].sort((a, b) => b.city.length - a.city.length);
   for (const airport of cities) {
     const name = airport.city.toLowerCase();
     const index = lower.indexOf(name);

@@ -16,7 +16,7 @@ export function AirportField({
 }) {
   const [query, setQuery] = useState(value ? placeLabel(value) : "");
   const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLLabelElement>(null);
 
   useEffect(() => {
     setQuery(value ? placeLabel(value) : "");

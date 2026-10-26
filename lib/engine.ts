@@ -1,5 +1,6 @@
 import { cityLabel, distanceKm, nearbyAirports, placeLabel, requireAirport } from "./airports";
 import { addDays } from "./dates";
+import { prettyDate } from "./format";
 import {
   awardQuote,
   groundCost,
@@ -19,19 +20,11 @@ import type {
   PointsUse,
   SearchInput,
   SearchLegInput,
+  Airport,
 } from "./types";
 
 interface Pool {
   [programId: string]: number;
-}
-
-interface LegPlan {
-  input: SearchLegInput;
-  flownFrom: string;
-  flownTo: string;
-  date: string;
-  cash: PricedLeg;
-  ground: number;
 }
 
 interface AwardUse {
@@ -78,7 +71,7 @@ export function buildTrip(input: SearchInput, balances: Record<string, number>, 
           strategy: "flexible_dates",
           eyebrow: "Flexible dates",
           title: flexed.changed
-            ? `Leave ${prettyShift(legs, flexed.legs)}`
+            ? `Cheaper on ${prettyShift(legs, flexed.legs)}`
             : "A cheaper day is already your date",
           summary: "Same cities. The fare moves a lot across a single week, so the search checks three days either side.",
           why: flexed.why,
@@ -348,7 +341,9 @@ function nearbyCombo(legs: SearchLegInput[], cabin: Cabin, today: string, roundT
     dates: flex ? [-3, -2, -1, 0, 1, 2, 3].map((offset) => addDays(leg.date, offset)).filter((date) => date >= today) : [leg.date],
   }));
 
-  let best: { priced: PricedLeg[]; ground: number; price: number; why: string[]; title: string } | null = null;
+  const picked: {
+    value: { priced: PricedLeg[]; ground: number; price: number; why: string[]; title: string } | null;
+  } = { value: null };
   const limited = choices.map((choice) => ({
     origins: choice.origins.slice(0, 3),
     dests: choice.dests.slice(0, 3),
@@ -367,7 +362,10 @@ function nearbyCombo(legs: SearchLegInput[], cabin: Cabin, today: string, roundT
       let winner: { from: string; to: string; date: string; price: number } | null = null;
       for (const from of choice.origins) {
         for (const to of choice.dests) {
-          if (requireAirport(from).metro === requireAirport(to).metro) continue;
+          const fromAirport = requireAirport(from);
+        const toAirport = requireAirport(to);
+        if (fromAirport.metro === toAirport.metro) continue;
+        if (!longHaulOk(fromAirport, toAirport)) continue;
           for (const date of choice.dates) {
             if (date < previous) continue;
             const quote = publishedLeg(from, to, date, cabin, today);
@@ -423,16 +421,20 @@ function nearbyCombo(legs: SearchLegInput[], cabin: Cabin, today: string, roundT
       const original = totalCash(legs.map((leg) => publishedLeg(leg.origin, leg.destination, leg.date, cabin, today).price), 1, roundTrip);
       if (price >= original - 12) return;
       const moved = acc.filter((leg, legIndex) => leg.from !== legs[legIndex].origin || leg.to !== legs[legIndex].destination);
+      if (!moved.length) return;
       const title = moved.length
         ? moved.map((leg) => `${cityLabel(leg.from)} (${leg.from}) → ${cityLabel(leg.to)} (${leg.to})`).join(", ")
         : "A nearby airport";
-      if (!best || price < best.price) best = { priced, ground, price, why, title };
+      if (!picked.value || price < picked.value.price) picked.value = { priced, ground, price, why, title };
       return;
     }
     const choice = limited[index];
     for (const from of choice.origins) {
       for (const to of choice.dests) {
-        if (requireAirport(from).metro === requireAirport(to).metro) continue;
+        const fromAirport = requireAirport(from);
+        const toAirport = requireAirport(to);
+        if (fromAirport.metro === toAirport.metro) continue;
+        if (!longHaulOk(fromAirport, toAirport)) continue;
         for (const date of choice.dates) {
           walk(index + 1, [...acc, { from, to, date }]);
         }
@@ -440,10 +442,10 @@ function nearbyCombo(legs: SearchLegInput[], cabin: Cabin, today: string, roundT
     }
   };
   walk(0, []);
-  if (!best) return null;
-  if (!best.why.length) best.why.push("A nearby airport beats the one you typed, even after the ride to get there.");
-  best.why.push("Milla subtracts a ground cost of about €0.42 per kilometre plus a fixed €14, so the saving is what you would actually keep.");
-  return best;
+  if (!picked.value) return null;
+  if (!picked.value.why.length) picked.value.why.push("A nearby airport beats the one you typed, even after the ride to get there.");
+  picked.value.why.push("Milla subtracts a ground cost of about €0.42 per kilometre plus a fixed €14, so the saving is what you would actually keep.");
+  return picked.value;
 }
 
 function applyPerLeg(
@@ -583,6 +585,18 @@ function publishedGuess(leg: SearchLegInput, cabin: Cabin) {
   return publishedLeg(leg.origin, leg.destination, leg.date, cabin, leg.date).price;
 }
 
+interface AwardChoice {
+  programId: string;
+  milesEach: number;
+  taxesEach: number;
+  slices: FlightSlice[];
+  date: string;
+  offPeak: boolean;
+  cpp: number;
+  cashEach: number;
+  transfer?: { bankId: string; amount: number };
+}
+
 function bestSource(
   leg: SearchLegInput,
   cabin: Cabin,
@@ -590,19 +604,9 @@ function bestSource(
   seats: number,
   dateShift: boolean,
   allowTransfer: boolean,
-) {
+): AwardChoice | null {
   const cashEach = publishedLeg(leg.origin, leg.destination, leg.date, cabin, leg.date).price;
-  let best: {
-    programId: string;
-    milesEach: number;
-    taxesEach: number;
-    slices: FlightSlice[];
-    date: string;
-    offPeak: boolean;
-    cpp: number;
-    cashEach: number;
-    transfer?: { bankId: string; amount: number };
-  } | null = null;
+  const choice: { value: AwardChoice | null } = { value: null };
 
   const consider = (programId: string, available: number, transfer?: { bankId: string }) => {
     if (available <= 0) return;
@@ -611,8 +615,8 @@ function bestSource(
     const need = quote.miles * seats;
     if (need > available) return;
     const cpp = ((cashEach - quote.taxes) / quote.miles) * 100;
-    if (!best || cpp > best.cpp) {
-      best = {
+    if (!choice.value || cpp > choice.value.cpp) {
+      choice.value = {
         programId,
         milesEach: quote.miles,
         taxesEach: quote.taxes,
@@ -636,12 +640,11 @@ function bestSource(
       const bankBalance = pool[bankId] ?? 0;
       if (!bankBalance) continue;
       for (const partner of partners) {
-        if ((pool[partner] ?? 0) >= 0 && false) continue;
         consider(partner, bankBalance, { bankId });
       }
     }
   }
-  return best;
+  return choice.value;
 }
 
 function mergePoints(uses: (AwardUse | null)[], seats: number): PointsUse[] {
@@ -737,7 +740,7 @@ function awardToOffer(
   const cpp = (pointsValue / pointsSpent) * 100;
   const transfer = plan.points.some((point) => point.source === "transfer");
   const weak = cpp < 0.8;
-  const names = plan.points.map((point) => point.programName).join(" and ");
+  const names = [...new Set(plan.points.map((point) => point.programName))].join(" and ");
   return {
     id: transfer ? `transfer-${index}` : `award-${index}`,
     strategy: transfer ? "transfer" : "award",
@@ -1013,11 +1016,15 @@ function positioningGuide(
   ];
 }
 
+function longHaulOk(from: Airport, to: Airport) {
+  return distanceKm(from, to) <= 1800 || (from.tier === 1 && to.tier === 1);
+}
+
 function prettyShift(original: SearchLegInput[], next: SearchLegInput[]) {
   return next
-    .map((leg, index) => (leg.date === original[index].date ? null : leg.date))
+    .map((leg, index) => (leg.date === original[index].date ? null : prettyDate(leg.date)))
     .filter(Boolean)
-    .join(" / ");
+    .join(" and ");
 }
 
 function unique(values: string[]) {

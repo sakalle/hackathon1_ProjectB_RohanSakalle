@@ -79,7 +79,7 @@ export function QuickForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <label>
           <span className="eyebrow">Depart</span>
-          <input className="field mt-2" type="date" value={depart} min={defaults.depart.slice(0, 0) || undefined} onChange={(event) => setDepart(event.target.value)} required />
+          <input className="field mt-2" type="date" value={depart} onChange={(event) => setDepart(event.target.value)} required />
         </label>
         <label>
           <span className="eyebrow">Return</span>
