@@ -2,7 +2,7 @@
 
 Same trip, much less money. Enter a route, see the normal fare against the hacked fare, then book the cash ticket in the app or follow the award steps.
 
-Fares come from Milla's model: distance, season, weekday, and public sweet-spot award charts. They are not live airline inventory. No card number is stored in full. The demo card is `4242 4242 4242 4242`.
+Cash fares come from Duffel when `DUFFEL_ACCESS_TOKEN` is set in `.env.local`. Award prices stay on public sweet-spot charts. If Duffel returns no fare, cash falls back to Milla's model (distance, season, weekday) and the result says so. No card number is stored in full. The demo card is `4242 4242 4242 4242`. It is checked in the app and is not sent to Duffel. A live order is paid from the Duffel test balance.
 
 ## Run
 
@@ -34,12 +34,12 @@ Start on the home page. The sample wallet is already loaded. Leave flexible date
 | Time | Do this | Say this |
 | --- | --- | --- |
 | 0:00 | Home. Madrid → New York is filled in. Point at the cream page, the brown savings language, and the cabin pills. | "Same trip. We price the normal fare and the hacked fare before anyone books." |
-| 0:20 | Press **Show the saving**. | "Ten programs, a cash week, and the award month. The model is distance and public charts, so this stays instant." |
+| 0:20 | Press **Show the saving**. | "Ten programs and an award month from public charts. The normal cash fare is live from Duffel when the key is set. Without it, cash is the model and the page says so." |
 | 0:40 | On results, read the brown **You save** number out loud. | "The saving stays on screen. That is the product." |
 | 0:55 | Point at **Cheapest award this month**, then tap that day. | "Darker days are fewer miles. Tapping reprices the whole trip on that departure." |
 | 1:20 | Scroll the program board. Point at **best value** and a transfer line. | "Every program, taxes, cents per point, and which bank points can move in 1:1." |
 | 1:40 | Filter **Miles**. Open the top award and press **Follow the steps**. | "Awards are a guide: transfer if needed, then search the airline. We do not pretend to hold the seat." |
-| 2:05 | Go back. Filter **Cash**. Book with `4242 4242 4242 4242`, any future expiry, any CVC. | "Cash is booked in the app. The card is a demo. The reference lands on Trips." |
+| 2:05 | Go back. Filter **Cash**. Book the live fare with `4242 4242 4242 4242`, any future expiry, any CVC, plus name, date of birth, and phone. | "Cash is ordered through Duffel. The card stays in Milla. The airline reference lands on Trips. Without a Duffel key, this is still the in-app demo booking." |
 | 2:30 | Open **Explorer**, then **Transfers**. | "The wallet also answers the other question: where can these miles go, and which card feeds which airline." |
 | 2:50 | Open **Trips** and read the saved total in the header. | "The running total is what you walk out with." |
 
@@ -48,6 +48,10 @@ If the room is slow, skip Explorer and end on the booking reference.
 ## Google sign-in
 
 The login page asks for a Google ID, such as `name@gmail.com`, and stores that account with a session cookie. It does not replace the sample wallet. A Google account popup is also available when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set in `.env.local`. The redirect URI for that popup is `http://localhost:3000/api/auth/callback`.
+
+## Duffel
+
+Put a Duffel test access token in `.env.local` as `DUFFEL_ACCESS_TOKEN` and restart `npm run dev`. Search then asks Duffel once, for the dates you typed. That price becomes the normal fare. The cheapest offer is the cash ticket you can book. Miles are still measured against it with the public charts. One Duffel call keeps the search to a single route. The award month is not a Duffel scan.
 
 ## Backend
 
@@ -59,6 +63,8 @@ Prices are calculated in the app, then saved. A card is checked and only the las
 
 ## Honest limits
 
-- Prices are estimates from the model, labelled as such on every result.
+- With a Duffel token, the normal cash fare is live and the cash ticket is a Duffel test order. Award space is still not live inventory.
+- Without a token, or when Duffel returns nothing, cash prices are the model and the result says so.
+- The demo card is not charged. Duffel test orders are paid from the Duffel balance.
 - The award calendar is the outbound month only, across all 10 programs, with no extra date-shift scan. That scan is what made an earlier full calendar take minutes.
 - Live seat maps, hotels, and real card charges are out of scope.

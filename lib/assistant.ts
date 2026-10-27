@@ -25,10 +25,10 @@ export function answerTripQuestion(message: string, ctx: AssistantContext): stri
       : "Sign-in is optional. Continue with Google from the home page or the Sign in link if you want your name on the trip. Search, the wallet, and booking all work as a guest.";
   }
   if (/card|4242|pay|checkout/.test(q)) {
-    return "Cash fares are booked inside Milla. Use the demo card 4242 4242 4242 4242, any future expiry, and any CVC. Only the last four digits are stored. Award seats are not charged here: you follow the steps and open the airline.";
+    return "Cash fares are booked inside Milla. Use the demo card 4242 4242 4242 4242, any future expiry, and any CVC. Only the last four digits are stored. A live Duffel fare is paid from the Duffel test balance, so that card is not charged and is not sent to Duffel. Award seats are not charged here: you follow the steps and open the airline.";
   }
   if (/real|live|api|invent|estimate|accurate|fake/.test(q)) {
-    return "Fares are a model: distance, season, weekday, and public award charts. They are not live airline seats. Every option says why the saving exists, and the number on the brown banner is that estimate.";
+    return "When a Duffel key is set, the normal cash fare is a live Duffel price for the dates you asked for, and you can order that ticket in the app. If Duffel returns nothing, cash falls back to Milla's distance model and the result says so. Award miles, taxes, and the award month stay on public charts. I do not invent a fare.";
   }
   if (/transfer|amex|membership|bank point|1:1|1 to 1/.test(q)) {
     return "Amex, Chase, Citi, and Capital One move to partner airlines at 1:1. Milla only suggests a transfer when the redemption is at least 0.8 cents per point. The Transfers page is the full matrix, and the program board names which bank can feed each airline.";
@@ -60,5 +60,5 @@ export function answerTripQuestion(message: string, ctx: AssistantContext): stri
   if (/how|what is milla|what do you do|help/.test(q)) {
     return "Enter a trip. Milla prices the normal fare against miles, nearby airports, and a smarter route, then keeps the saving on screen. You book the cash fare here, or follow the award steps. Ask about your wallet if you want the numbers.";
   }
-  return "I answer from this app: your wallet, your latest search, transfers, and how booking works. I do not check live airline inventory. Try “what miles do I have?” or “how do I book?”.";
+    return "I answer from this app: your wallet, your latest search, transfers, and how booking works. I do not invent fares. Try “what miles do I have?” or “how do I book?”.";
 }

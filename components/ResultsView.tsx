@@ -33,6 +33,7 @@ export function ResultsView({
   savedOfferIds: string[];
   bookings: Record<string, string>;
 }) {
+  const liveFare = search.offers.some((offer) => offer.live);
   const live = search.offers.filter((offer) => !offer.locked);
   const locked = search.offers.filter((offer) => offer.locked);
   const best = live.find((offer) => offer.recommended) ?? live[0];
@@ -93,7 +94,12 @@ export function ResultsView({
               : "Nothing on this trip beats the normal fare by enough to matter."}
           </p>
         </div>
-        <PriceBlock label="Normal price" amount={search.normalPrice} detail="What most people pay for the obvious flight." muted />
+        <PriceBlock
+          label="Normal price"
+          amount={search.normalPrice}
+          detail={liveFare ? "Live Duffel fare for the dates you asked for." : "What most people pay for the obvious flight."}
+          muted
+        />
         <PriceBlock label="Hacked price" amount={search.bestPrice} detail={best ? best.title : "No cheaper option held up."} />
       </section>
 
@@ -107,7 +113,7 @@ export function ResultsView({
         <section>
           <div className="mb-3 flex items-end justify-between gap-4">
             <h2 className="font-serif text-2xl">The week around your dates</h2>
-            <p className="text-sm text-mute">Same trip length. Cash fare only.</p>
+            <p className="text-sm text-mute">{liveFare ? "Same trip length. This week is still an estimate." : "Same trip length. Cash fare only."}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {search.calendar.map((day) => (
@@ -243,7 +249,7 @@ function OfferCard({
         <div className="md:text-right">
           <p className="font-serif text-4xl text-ink">{eur(offer.hackedPrice)}</p>
           <p className="mt-1 text-copper">
-            {offer.locked ? "Not in your saving yet" : `Save ${eur(offer.savingsEur)} · ${pct(offer.savingsPct)}`}
+            {offer.locked ? "Not in your saving yet" : offer.live ? "Live fare to book" : `Save ${eur(offer.savingsEur)} · ${pct(offer.savingsPct)}`}
           </p>
           {offer.points.length > 0 && (
             <p className="mt-2 text-sm text-mute">

@@ -83,6 +83,14 @@ export interface Offer {
   recommended: boolean;
   locked: boolean;
   weak: boolean;
+  live?: {
+    offerId: string;
+    passengerIds: string[];
+    currency: string;
+    amount: string;
+    owner: string;
+    documentsRequired: boolean;
+  };
   shortfall?: {
     programId: string;
     programName: string;

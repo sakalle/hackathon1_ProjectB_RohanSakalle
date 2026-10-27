@@ -42,6 +42,7 @@ export default function BookingPage({ params }: { params: { id: string } }) {
         <p className="mt-3 text-sm text-mute">
           Confirmation sent to the address on file: {booking.email}
           {booking.last4 ? `. Card ending ${booking.last4}. The full number was not stored.` : ". No card was stored."}
+          {offer?.live ? " Duffel placed this order and took payment from the Duffel balance. The card was not sent to Duffel." : ""}
         </p>
       </section>
       {offer && (

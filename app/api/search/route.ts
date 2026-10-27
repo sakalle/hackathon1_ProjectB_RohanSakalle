@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isIsoDate, todayISO } from "@/lib/dates";
 import { balancesMap, saveSearch } from "@/lib/db";
+import { withDuffel } from "@/lib/duffel";
 import { buildTrip } from "@/lib/engine";
 import type { Cabin, SearchInput, SearchLegInput, TripMode } from "@/lib/types";
 
@@ -9,7 +10,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const input = normalize(body);
     const built = buildTrip(input, balancesMap(), todayISO());
-    const id = saveSearch(input, built);
+    const priced = await withDuffel(input, built);
+    const id = saveSearch(input, priced);
     return NextResponse.json({ id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not search.";

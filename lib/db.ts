@@ -484,7 +484,14 @@ function refreshAlerts() {
   }
 }
 
-export function createBooking(input: {
+export function findBooking(searchId: string, offerId: string): BookingRow | null {
+  const row = getDb()
+    .prepare("SELECT id FROM bookings WHERE search_id = ? AND offer_id = ?")
+    .get(searchId, offerId) as { id: string } | undefined;
+  return row ? getBooking(row.id) : null;
+}
+
+export function assertBookingInput(input: {
   searchId: string;
   offerId: string;
   email: string;
@@ -495,11 +502,6 @@ export function createBooking(input: {
   if (!search) throw new Error("That search no longer exists.");
   const offer = search.offers.find((item) => item.id === input.offerId);
   if (!offer || offer.locked) throw new Error("This option cannot be booked yet.");
-  const existing = getDb()
-    .prepare("SELECT id FROM bookings WHERE search_id = ? AND offer_id = ?")
-    .get(input.searchId, input.offerId) as { id: string } | undefined;
-  if (existing) return getBooking(existing.id)!;
-
   const email = input.email.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Add a real email address.");
   const expected = search.input.adults + search.input.children;
@@ -513,8 +515,22 @@ export function createBooking(input: {
     if (!luhn(digits)) throw new Error("That card number does not pass a basic check.");
     last4 = digits.slice(-4);
   }
+  return { search, offer, email, last4 };
+}
+
+export function createBooking(input: {
+  searchId: string;
+  offerId: string;
+  email: string;
+  passengers: { name: string; kind: string }[];
+  cardNumber?: string;
+  confirmation?: string;
+}) {
+  const existing = findBooking(input.searchId, input.offerId);
+  if (existing) return existing;
+  const { offer, email, last4 } = assertBookingInput(input);
   const id = `book_${crypto.randomUUID().slice(0, 8)}`;
-  const confirmation = `MILLA-${id.slice(-6).toUpperCase()}`;
+  const confirmation = input.confirmation?.trim() || `MILLA-${id.slice(-6).toUpperCase()}`;
   getDb()
     .prepare(
       `INSERT INTO bookings (

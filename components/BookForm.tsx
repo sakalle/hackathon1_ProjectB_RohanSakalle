@@ -15,6 +15,12 @@ export function BookForm({
 }) {
   const router = useRouter();
   const [names, setNames] = useState(passengers.map(() => ""));
+  const [born, setBorn] = useState(passengers.map(() => ""));
+  const [gender, setGender] = useState(passengers.map(() => "m"));
+  const [phone, setPhone] = useState("");
+  const [passportNo, setPassportNo] = useState(passengers.map(() => ""));
+  const [passportCountry, setPassportCountry] = useState(passengers.map(() => ""));
+  const [passportExpires, setPassportExpires] = useState(passengers.map(() => ""));
   const [email, setEmail] = useState("");
   const [card, setCard] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -22,6 +28,7 @@ export function BookForm({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const cash = offer.bookPath === "cash";
+  const live = Boolean(offer.live);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -52,7 +59,16 @@ export function BookForm({
         offerId: offer.id,
         email,
         cardNumber: cash ? card : undefined,
-        passengers: passengers.map((person, index) => ({ kind: person.kind, name: names[index] })),
+        phone: live ? phone : undefined,
+        passengers: passengers.map((person, index) => ({
+          kind: person.kind,
+          name: names[index],
+          bornOn: live ? born[index] : undefined,
+          gender: live ? gender[index] : undefined,
+          passport: live && offer.live?.documentsRequired
+            ? { number: passportNo[index], country: passportCountry[index], expires: passportExpires[index] }
+            : undefined,
+        })),
       }),
     });
     const data = await response.json();
@@ -74,6 +90,49 @@ export function BookForm({
           <input className="field mt-2" value={names[index]} onChange={(event) => setNames((current) => current.map((name, i) => (i === index ? event.target.value : name)))} required />
         </label>
       ))}
+      {live &&
+        passengers.map((person, index) => (
+          <div key={`live-${person.kind}-${index}`} className="grid gap-3 border border-line bg-paper p-4">
+            <p className="eyebrow">
+              {person.kind} {index + 1} · ticket details
+            </p>
+            <label>
+              <span className="eyebrow">Date of birth</span>
+              <input className="field mt-2" type="date" value={born[index]} onChange={(event) => setBorn((current) => current.map((value, i) => (i === index ? event.target.value : value)))} required />
+            </label>
+            <label>
+              <span className="eyebrow">Gender on the ticket</span>
+              <select className="field mt-2" value={gender[index]} onChange={(event) => setGender((current) => current.map((value, i) => (i === index ? event.target.value : value)))}>
+                <option value="m">Male</option>
+                <option value="f">Female</option>
+              </select>
+            </label>
+            {offer.live?.documentsRequired && (
+              <div className="grid gap-3">
+                <label>
+                  <span className="eyebrow">Passport number</span>
+                  <input className="field mt-2" value={passportNo[index]} onChange={(event) => setPassportNo((current) => current.map((value, i) => (i === index ? event.target.value : value)))} required />
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label>
+                    <span className="eyebrow">Country</span>
+                    <input className="field mt-2" placeholder="ES" maxLength={2} value={passportCountry[index]} onChange={(event) => setPassportCountry((current) => current.map((value, i) => (i === index ? event.target.value : value)))} required />
+                  </label>
+                  <label>
+                    <span className="eyebrow">Expires</span>
+                    <input className="field mt-2" type="date" value={passportExpires[index]} onChange={(event) => setPassportExpires((current) => current.map((value, i) => (i === index ? event.target.value : value)))} required />
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      {live && (
+        <label>
+          <span className="eyebrow">Phone, with country code</span>
+          <input className="field mt-2" type="tel" placeholder="+34600000000" value={phone} onChange={(event) => setPhone(event.target.value)} required />
+        </label>
+      )}
       <label>
         <span className="eyebrow">Email</span>
         <input className="field mt-2" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
@@ -81,7 +140,9 @@ export function BookForm({
       {cash && (
         <div className="grid gap-4 border border-line bg-cream p-4">
           <p className="text-sm text-mute">
-            The card is checked, then only the last four digits are stored. Try 4242 4242 4242 4242, any future expiry, any CVC. Nothing is charged.
+            {live
+              ? "The card is checked here and only the last four digits are stored. It is not sent to Duffel. The ticket is ordered in Duffel test mode and paid from the Duffel balance. Use 4242 4242 4242 4242, any future expiry, any CVC."
+              : "The card is checked, then only the last four digits are stored. Try 4242 4242 4242 4242, any future expiry, any CVC. Nothing is charged."}
           </p>
           <label>
             <span className="eyebrow">Card number</span>
@@ -101,7 +162,7 @@ export function BookForm({
       )}
       {error && <p className="text-sm text-copper">{error}</p>}
       <button className="btn" disabled={pending} type="submit">
-        {pending ? "Confirming…" : cash ? "Confirm booking" : "Record this booking"}
+        {pending ? (live ? "Ordering with Duffel…" : "Confirming…") : cash ? "Confirm booking" : "Record this booking"}
       </button>
     </form>
   );
