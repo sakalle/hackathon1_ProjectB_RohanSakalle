@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PROGRAMS, TRANSFERS, airlinePrograms, bankPrograms } from "@/lib/programs";
+import { BANK_CARDS, PROGRAMS, TRANSFERS, airlinePrograms, bankPrograms } from "@/lib/programs";
 
 export default function TransfersPage() {
   const airlines = airlinePrograms();
@@ -11,9 +11,26 @@ export default function TransfersPage() {
         <p className="eyebrow">Credit card transfer map</p>
         <h1 className="mt-3 font-serif text-5xl">Move points 1:1, then book the airline.</h1>
         <p className="mt-3 max-w-2xl text-mute">
-          Award Travel Finder shows transfer partners as a matrix. Milla uses the same map when it spends your wallet, and only transfers when the redemption is worth it.
+          The cards below earn the points. The grid moves those points into an airline at 1:1. Milla only suggests the transfer when the redemption is worth it.
         </p>
       </div>
+      <section className="grid gap-4 md:grid-cols-2">
+        {banks.map((bank) => (
+          <article key={bank.id} className="border border-line bg-paper p-5">
+            <p className="eyebrow">{bank.carrier}</p>
+            <h2 className="mt-2 font-serif text-3xl">{bank.name}</h2>
+            <ul className="mt-4 grid gap-3">
+              {(BANK_CARDS[bank.id] ?? []).map((card) => (
+                <li key={card.name} className="border border-line bg-cream px-3 py-3">
+                  <p className="font-medium">{card.name}</p>
+                  <p className="mt-1 text-sm text-mute">Earns {bank.unit}. {card.earn}.</p>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </section>
+      <p className="text-sm text-mute">These are typical published US card rates, not a live offer. A European card with the same name can earn differently.</p>
       <div className="overflow-x-auto border border-line bg-paper">
         <table className="min-w-[720px] w-full text-left text-sm">
           <thead>

@@ -31,7 +31,7 @@ export function answerTripQuestion(message: string, ctx: AssistantContext): stri
     return "When a Duffel key is set, the normal cash fare is a live Duffel price for the dates you asked for, and you can order that ticket in the app. If Duffel returns nothing, cash falls back to Milla's distance model and the result says so. Award miles, taxes, and the award month stay on public charts. I do not invent a fare.";
   }
   if (/transfer|amex|membership|bank point|1:1|1 to 1/.test(q)) {
-    return "Amex, Chase, Citi, and Capital One move to partner airlines at 1:1. Milla only suggests a transfer when the redemption is at least 0.8 cents per point. The Transfers page is the full matrix, and the program board names which bank can feed each airline.";
+    return "Amex Platinum and Gold earn Membership Rewards. Chase Sapphire earns Ultimate Rewards. Citi Strata Premier earns ThankYou points. Capital One Venture earns Capital One miles. Those points move to partner airlines at 1:1. The Transfers page lists the cards and the matrix. Milla only suggests a transfer at 0.8 cents per point or better.";
   }
   if (/wallet|balance|miles|avios|points do i|what do i have|how many/.test(q)) {
     if (!ctx.balances.length) return "The wallet is empty. Open Miles and load the sample wallet: Iberia, Flying Blue, Miles & More, and Amex.";

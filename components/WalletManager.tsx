@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PROGRAMS, TRANSFERS, programById } from "@/lib/programs";
+import { BANK_CARDS, PROGRAMS, TRANSFERS, programById } from "@/lib/programs";
 
 export function WalletManager({
   name,
@@ -90,7 +90,8 @@ export function WalletManager({
                 onChange={(balance) => setValues((current) => ({ ...current, [program.id]: balance }))}
               />
               <p className="mt-3 text-sm text-mute">
-                Transfers to {(TRANSFERS[program.id] ?? []).map((id) => programById(id)?.name).filter(Boolean).join(", ")}.
+                {(BANK_CARDS[program.id] ?? []).map((card) => card.name).join(" and ")} {(BANK_CARDS[program.id] ?? []).length === 1 ? "earns" : "earn"} these {program.unit}. They transfer 1:1 to{" "}
+                {(TRANSFERS[program.id] ?? []).map((id) => programById(id)?.name).filter(Boolean).join(", ")}.
               </p>
             </div>
           ))}

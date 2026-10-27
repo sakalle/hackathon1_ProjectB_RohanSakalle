@@ -26,6 +26,29 @@ export const PROGRAMS: Program[] = [
   { id: "capone", name: "Capital One Miles", kind: "bank", unit: "miles", carrier: "Capital One" },
 ];
 
+export interface EarnCard {
+  name: string;
+  earn: string;
+}
+
+export const BANK_CARDS: Record<string, EarnCard[]> = {
+  amex: [
+    { name: "The Platinum Card", earn: "5 points per $1 on flights booked with Amex, 1 point on other purchases" },
+    { name: "Amex Gold", earn: "4 points per $1 at restaurants and US supermarkets, 1 point on other purchases" },
+  ],
+  chase: [
+    { name: "Sapphire Preferred", earn: "3 points per $1 on dining, 2 points on travel, 1 point on other purchases" },
+    { name: "Sapphire Reserve", earn: "3 points per $1 on travel and dining, 1 point on other purchases" },
+  ],
+  citi: [
+    { name: "Citi Strata Premier", earn: "3 points per $1 on air travel, hotels, restaurants, and supermarkets" },
+  ],
+  capone: [
+    { name: "Venture X", earn: "2 miles per $1 on every purchase" },
+    { name: "Venture", earn: "2 miles per $1 on every purchase" },
+  ],
+};
+
 export const TRANSFERS: Record<string, string[]> = {
   amex: ["iberia", "ba", "flyingblue", "virgin", "aeroplan"],
   chase: ["united", "virgin", "flyingblue", "iberia", "ba", "aeroplan"],
