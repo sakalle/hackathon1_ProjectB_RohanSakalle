@@ -9,7 +9,8 @@ import {
   sweetLeg,
   type PricedLeg,
 } from "./pricing";
-import { TRANSFERS, programById } from "./programs";
+import { awardMonth, programBoard } from "./extras";
+import { PROGRAM_SITES, TRANSFERS, programById } from "./programs";
 import type {
   BuiltSearch,
   Cabin,
@@ -218,6 +219,7 @@ export function buildTrip(input: SearchInput, balances: Record<string, number>, 
   }
   notes.push("Fares and award prices come from Milla's model, built from distance, season, and public sweet-spot charts. The saving is explained on every option.");
 
+  const cashPerAdult = Math.round(normalPrice / Math.max(1, cashSeats));
   return {
     title: input.tripName?.trim() || titleFor(legs),
     normalPrice,
@@ -226,6 +228,8 @@ export function buildTrip(input: SearchInput, balances: Record<string, number>, 
     savingsPct: normalPrice ? (savingsEur / normalPrice) * 100 : 0,
     offers: ordered,
     calendar,
+    awardMonth: awardMonth(legs, input.cabin, today),
+    programBoard: programBoard(legs, input.cabin, cashPerAdult),
     notes,
   };
 }
@@ -973,6 +977,7 @@ function awardGuide(plan: FundedPlan, legs: SearchLegInput[]): GuideStep[] {
     steps.push({
       title: `Search ${program.carrier} for ${leg.origin} → ${leg.destination}`,
       detail: `Log in to ${program.name}. Search ${use.date}, ${use.slices[0]?.cabin ?? "economy"}. You want a seat at ${use.milesEach.toLocaleString("en-GB")} ${program.unit} plus about €${use.taxesEach} tax per person. If the tax is much higher, stop.`,
+      href: PROGRAM_SITES[program.id],
     });
   });
   if (plan.uses.some((use) => !use)) {

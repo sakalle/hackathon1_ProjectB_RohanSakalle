@@ -7,7 +7,10 @@
 }
 
 body {
-  background: #f3efe6;
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgba(184, 106, 50, 0.14), transparent 55%),
+    radial-gradient(900px 420px at 110% 8%, rgba(42, 35, 28, 0.08), transparent 50%),
+    #f3efe6;
   color: #1c1612;
   font-family: var(--font-sans), system-ui, sans-serif;
 }
@@ -23,17 +26,18 @@ body {
 
 .field {
   width: 100%;
-  background: rgba(255, 255, 255, 0.55);
+  background: #fffdf8;
   border: 1px solid #e3d8c8;
-  padding: 0.85rem 0.9rem;
+  padding: 0.9rem 1rem;
   font-size: 1rem;
   color: #1c1612;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .field:focus {
   outline: none;
   border-color: #b86a32;
-  background: white;
+  box-shadow: 0 0 0 4px rgba(184, 106, 50, 0.12);
 }
 
 .eyebrow {
@@ -51,17 +55,20 @@ body {
   gap: 0.5rem;
   background: #1c1612;
   color: #f3efe6;
-  padding: 0.9rem 1.2rem;
+  padding: 0.95rem 1.25rem;
   font-size: 0.95rem;
-  transition: transform 0.15s ease, background 0.15s ease;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn:hover {
   background: #34281f;
+  box-shadow: 0 10px 24px rgba(28, 22, 18, 0.18);
 }
 
 .btn:disabled {
   opacity: 0.55;
+  box-shadow: none;
 }
 
 .btn-ghost {
@@ -70,16 +77,43 @@ body {
   justify-content: center;
   border: 1px solid #d9cebf;
   padding: 0.85rem 1.1rem;
-  background: transparent;
+  background: rgba(250, 247, 242, 0.7);
   color: #1c1612;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .btn-ghost:hover {
   border-color: #1c1612;
+  background: white;
 }
 
 .rule {
   width: 2.5rem;
   height: 2px;
   background: #b86a32;
+}
+
+.lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(28, 22, 18, 0.08);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #e3d8c8;
+  background: #fffdf8;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  color: #1c1612;
+}
+
+.chip:hover {
+  border-color: #b86a32;
+  color: #b86a32;
 }

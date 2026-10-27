@@ -49,6 +49,11 @@ export default function GuidePage({ params }: { params: { searchId: string; offe
             <div>
               <h2 className="font-serif text-2xl">{step.title}</h2>
               <p className="mt-2 text-mute">{step.detail}</p>
+              {step.href && (
+                <a className="mt-3 inline-block text-sm text-copper" href={step.href} target="_blank" rel="noreferrer">
+                  Open the airline site
+                </a>
+              )}
             </div>
           </li>
         ))}

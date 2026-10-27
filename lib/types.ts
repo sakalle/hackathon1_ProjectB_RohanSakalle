@@ -59,6 +59,7 @@ export interface PointsUse {
 export interface GuideStep {
   title: string;
   detail: string;
+  href?: string;
 }
 
 export interface Offer {
@@ -98,6 +99,29 @@ export interface FareDay {
   lowest: boolean;
 }
 
+export interface AwardDay {
+  date: string;
+  cash: number;
+  miles: number | null;
+  programId: string | null;
+  programName: string | null;
+  taxes: number | null;
+  open: boolean;
+}
+
+export interface ProgramQuote {
+  programId: string;
+  programName: string;
+  carrier: string;
+  unit: string;
+  miles: number;
+  taxes: number;
+  open: boolean;
+  cpp: number | null;
+  searchUrl: string;
+  transferableFrom: string[];
+}
+
 export interface BuiltSearch {
   title: string;
   normalPrice: number;
@@ -106,6 +130,8 @@ export interface BuiltSearch {
   savingsPct: number;
   offers: Offer[];
   calendar: FareDay[];
+  awardMonth: AwardDay[];
+  programBoard: ProgramQuote[];
   notes: string[];
 }
 

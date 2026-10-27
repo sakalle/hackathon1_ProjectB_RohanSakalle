@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import Database from "better-sqlite3";
 import { SAMPLE_WALLET } from "./programs";
-import type { BuiltSearch, Offer, SearchInput } from "./types";
+import type { AwardDay, BuiltSearch, Offer, ProgramQuote, SearchInput } from "./types";
 
 export interface LoyaltyRow {
   id: string;
@@ -22,6 +22,8 @@ export interface SearchRow {
   savingsPct: number;
   offers: Offer[];
   calendar: BuiltSearch["calendar"];
+  awardMonth: AwardDay[];
+  programBoard: ProgramQuote[];
   notes: string[];
   createdAt: string;
 }
@@ -226,7 +228,7 @@ export function saveSearch(input: SearchInput, built: BuiltSearch) {
       built.savingsEur,
       built.savingsPct,
       JSON.stringify(built.offers),
-      JSON.stringify(built.calendar),
+      JSON.stringify({ week: built.calendar, month: built.awardMonth, board: built.programBoard }),
       JSON.stringify(built.notes),
       new Date().toISOString(),
     );
@@ -255,9 +257,19 @@ function mapSearch(row: Record<string, unknown>): SearchRow {
     savingsEur: Number(row.savings_eur),
     savingsPct: Number(row.savings_pct),
     offers: JSON.parse(String(row.offers_json)) as Offer[],
-    calendar: JSON.parse(String(row.calendar_json)),
+    ...unpackCalendar(String(row.calendar_json)),
     notes: JSON.parse(String(row.notes_json)),
     createdAt: String(row.created_at),
+  };
+}
+
+function unpackCalendar(raw: string) {
+  const parsed = JSON.parse(raw) as BuiltSearch["calendar"] | { week?: BuiltSearch["calendar"]; month?: AwardDay[]; board?: ProgramQuote[] };
+  if (Array.isArray(parsed)) return { calendar: parsed, awardMonth: [] as AwardDay[], programBoard: [] as ProgramQuote[] };
+  return {
+    calendar: parsed.week ?? [],
+    awardMonth: parsed.month ?? [],
+    programBoard: parsed.board ?? [],
   };
 }
 

@@ -13,7 +13,9 @@ export default function PlanPage() {
           Miles are spent on the flights where they buy the most cash. The other flights stay as paid tickets. An open jaw is welcome.
         </p>
       </div>
-      <PlanForm start={start} next={next} />
+      <div className="border border-line bg-paper p-5 shadow-card md:p-7">
+        <PlanForm start={start} next={next} />
+      </div>
     </main>
   );
 }

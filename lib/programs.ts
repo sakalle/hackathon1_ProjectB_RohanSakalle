@@ -54,6 +54,31 @@ export function bankPrograms() {
   return PROGRAMS.filter((program) => program.kind === "bank");
 }
 
+export const PROGRAM_SITES: Record<string, string> = {
+  iberia: "https://www.iberia.com/gb/iberiaplus/",
+  ba: "https://www.britishairways.com/travel/redeem/execclub/_gf/en_gb",
+  flyingblue: "https://wwws.airfrance.us/search/offers",
+  mnm: "https://www.miles-and-more.com/row/en/award-flights.html",
+  aeroplan: "https://www.aircanada.com/aeroplan",
+  virgin: "https://www.virginatlantic.com/reward-flight-search",
+  aa: "https://www.aa.com/loyalty/award-travel",
+  united: "https://www.united.com/en/us/fly/mileageplus.html",
+  turkish: "https://www.turkishairlines.com/en-int/miles-and-smiles/",
+  qatar: "https://www.qatarairways.com/en/Privilege-Club.html",
+};
+
+export function airlineSearchUrl(programId: string, from: string, to: string, date: string) {
+  const query = encodeURIComponent(`${from} to ${to} ${date}`);
+  const google = `https://www.google.com/travel/flights?q=${query}`;
+  return PROGRAM_SITES[programId] ?? google;
+}
+
+export function banksThatTransferTo(programId: string) {
+  return Object.entries(TRANSFERS)
+    .filter(([, partners]) => partners.includes(programId))
+    .map(([bankId]) => programById(bankId)?.name ?? bankId);
+}
+
 export const FLAG_CARRIER: Record<string, string> = {
   Spain: "Iberia",
   Portugal: "TAP Air Portugal",

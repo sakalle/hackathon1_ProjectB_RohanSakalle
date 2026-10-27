@@ -1,7 +1,7 @@
 import { QuickForm } from "@/components/QuickForm";
 import { addDays, todayISO } from "@/lib/dates";
 import { listLoyalty } from "@/lib/db";
-import { programById } from "@/lib/programs";
+import { airlinePrograms, programById } from "@/lib/programs";
 
 export default function FlyPage({
   searchParams,
@@ -26,11 +26,23 @@ export default function FlyPage({
   return (
     <main className="mx-auto grid max-w-3xl gap-8 px-4 py-10 md:px-6 md:py-14">
       <div>
-        <p className="eyebrow">Quick flight</p>
-        <h1 className="mt-3 font-serif text-5xl">One route. One answer.</h1>
-        <p className="mt-3 text-mute">Enter the trip you already have in mind. Milla puts the normal fare next to every way to pay less.</p>
+        <p className="eyebrow">Compare award flights</p>
+        <h1 className="mt-3 font-serif text-5xl">Search every program on one route.</h1>
+        <p className="mt-3 text-mute">Enter the trip. Milla prices cash, miles, nearby airports and smarter routes together.</p>
       </div>
-      <QuickForm defaults={defaults} miles={miles} />
+      <div className="border border-line bg-paper p-5 shadow-card md:p-7">
+        <QuickForm defaults={defaults} miles={miles} />
+      </div>
+      <div>
+        <p className="eyebrow">Programs we price</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {airlinePrograms().map((program) => (
+            <span key={program.id} className="chip">
+              {program.carrier}
+            </span>
+          ))}
+        </div>
+      </div>
     </main>
   );
 }

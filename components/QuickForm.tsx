@@ -58,8 +58,31 @@ export function QuickForm({
     router.push(`/results/${data.id}`);
   }
 
+  const chips = [
+    ["MAD", "JFK", "Madrid → New York"],
+    ["LHR", "JFK", "London → New York"],
+    ["BCN", "HND", "Barcelona → Tokyo"],
+    ["VLC", "EZE", "Valencia → Buenos Aires"],
+    ["AGP", "LGW", "Málaga → London"],
+  ];
+
   return (
     <form onSubmit={submit} className="grid gap-6">
+      <div className="flex flex-wrap gap-2">
+        {chips.map(([chipFrom, chipTo, label]) => (
+          <button
+            key={label}
+            type="button"
+            className="chip"
+            onClick={() => {
+              setFrom(chipFrom);
+              setTo(chipTo);
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-end">
         <AirportField label="From" value={from} onChange={setFrom} placeholder="Madrid, Málaga, Valencia…" />
         <button
@@ -97,17 +120,24 @@ export function QuickForm({
         <input type="checkbox" checked={oneWay} onChange={(event) => setOneWay(event.target.checked)} />
         One way
       </label>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Stepper label="Adults" value={adults} min={1} max={9} onChange={setAdults} />
         <Stepper label="Children" value={children} min={0} max={8} onChange={setChildren} />
-        <label>
-          <span className="eyebrow">Cabin</span>
-          <select className="field mt-2" value={cabin} onChange={(event) => setCabin(event.target.value as Cabin)}>
-            <option value="economy">Economy</option>
-            <option value="premium">Premium economy</option>
-            <option value="business">Business</option>
-          </select>
-        </label>
+      </div>
+      <div>
+        <span className="eyebrow">Cabin</span>
+        <div className="mt-2 grid grid-cols-3 border border-line">
+          {(["economy", "premium", "business"] as Cabin[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setCabin(option)}
+              className={`px-2 py-3 text-sm ${cabin === option ? "bg-brown text-cream" : "bg-white/50"}`}
+            >
+              {option === "premium" ? "Premium" : option === "business" ? "Business" : "Economy"}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Toggle on={flexible} setOn={setFlexible} title="Flexible dates" detail="Check three days either side." />

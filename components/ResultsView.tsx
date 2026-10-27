@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { cityLabel } from "@/lib/airports";
 import { cabinLabel, cppLabel, eur, formatDuration, pct, pointsLabel, prettyDate, shortDate, weekday } from "@/lib/format";
-import type { BuiltSearch, Offer, SearchInput } from "@/lib/types";
+import type { AwardDay, BuiltSearch, Offer, ProgramQuote, SearchInput } from "@/lib/types";
 
 type SearchView = {
   id: string;
@@ -18,6 +18,8 @@ type SearchView = {
   savingsPct: number;
   offers: Offer[];
   calendar: BuiltSearch["calendar"];
+  awardMonth: AwardDay[];
+  programBoard: ProgramQuote[];
   notes: string[];
 };
 
@@ -33,6 +35,13 @@ export function ResultsView({
   const live = search.offers.filter((offer) => !offer.locked);
   const locked = search.offers.filter((offer) => offer.locked);
   const best = live.find((offer) => offer.recommended) ?? live[0];
+  const [filter, setFilter] = useState<"all" | "cash" | "miles" | "route">("all");
+  const shown = live.filter((offer) => {
+    if (filter === "cash") return offer.bookPath === "cash";
+    if (filter === "miles") return offer.bookPath !== "cash";
+    if (filter === "route") return offer.strategy === "smarter_route" || offer.strategy === "split_ticket" || offer.strategy === "nearby_airport" || offer.strategy === "flex_nearby";
+    return true;
+  });
 
   return (
     <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:px-6 md:py-12">
@@ -61,6 +70,9 @@ export function ResultsView({
         <PriceBlock label="Hacked price" amount={search.bestPrice} detail={best ? best.title : "No cheaper option held up."} />
       </section>
 
+      {search.awardMonth.length > 0 && <AwardHeatmap days={search.awardMonth} />}
+      {search.programBoard.length > 0 && <ProgramBoard rows={search.programBoard} />}
+
       {search.calendar.length > 0 && (
         <section>
           <div className="mb-3 flex items-end justify-between gap-4">
@@ -80,9 +92,23 @@ export function ResultsView({
       )}
 
       <section className="grid gap-4">
-        <h2 className="font-serif text-3xl">Ways to pay less</h2>
-        {live.length === 0 && <p className="text-mute">Keep the normal fare. Changing the day, the airport, or the route does not pay for itself here.</p>}
-        {live.map((offer) => (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="font-serif text-3xl">Ways to pay less</h2>
+          <div className="flex flex-wrap gap-2">
+            {([
+              ["all", "All"],
+              ["cash", "Cash"],
+              ["miles", "Miles"],
+              ["route", "Routes"],
+            ] as const).map(([id, label]) => (
+              <button key={id} type="button" onClick={() => setFilter(id)} className={`chip ${filter === id ? "border-ink bg-brown text-cream" : ""}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {shown.length === 0 && <p className="text-mute">Nothing in this filter. Try All.</p>}
+        {shown.map((offer) => (
           <OfferCard
             key={offer.id}
             offer={offer}
@@ -169,7 +195,7 @@ function OfferCard({
   }
 
   return (
-    <article className={`border bg-paper ${offer.recommended ? "border-ink" : "border-line"}`}>
+    <article className={`lift border bg-paper ${offer.recommended ? "border-ink shadow-card" : "border-line"}`}>
       <div className="grid gap-4 p-5 md:grid-cols-[1fr_auto] md:p-6">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -259,14 +285,16 @@ function OfferCard({
           <div className="grid gap-2">
             {offer.slices.map((slice, index) => (
               <div key={`${slice.from}${slice.to}${slice.date}${index}`} className="border border-line bg-cream px-3 py-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-medium">
-                    {cityLabel(slice.from)} → {cityLabel(slice.to)}
-                  </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="font-serif text-xl">{slice.from}</span>
+                    <span className="h-px w-10 bg-copper" />
+                    <span className="font-serif text-xl">{slice.to}</span>
+                  </div>
                   <p className="text-xs uppercase tracking-wider text-copper">{slice.award ? "Award" : "Cash"}</p>
                 </div>
-                <p className="mt-1 text-sm text-mute">
-                  {prettyDate(slice.date)} · {slice.depart}–{slice.arrive}
+                <p className="mt-2 text-sm text-mute">
+                  {cityLabel(slice.from)} → {cityLabel(slice.to)} · {prettyDate(slice.date)} · {slice.depart}–{slice.arrive}
                   {slice.nextDay ? " +1" : ""} · {formatDuration(slice.durationMin)} · {slice.carrier}
                 </p>
                 <p className="text-sm text-mute">
@@ -280,5 +308,88 @@ function OfferCard({
       )}
       {message && <p className="border-t border-line px-5 py-3 text-sm md:px-6">{message}</p>}
     </article>
+  );
+}
+
+function AwardHeatmap({ days }: { days: AwardDay[] }) {
+  const miles = days.map((day) => day.miles).filter((value): value is number => value != null);
+  const min = miles.length ? Math.min(...miles) : 0;
+  const max = miles.length ? Math.max(...miles) : 1;
+  const first = days[0]?.date;
+  const pad = first ? new Date(`${first}T00:00:00Z`).getUTCDay() : 0;
+  const label = first ? new Date(`${first}T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }) : "Month";
+  return (
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-4">
+        <h2 className="font-serif text-2xl">Award calendar · {label}</h2>
+        <p className="text-sm text-mute">Open seats in miles. Darker is cheaper.</p>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] uppercase tracking-wider text-mute">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+          <div key={day} className="py-1">
+            {day}
+          </div>
+        ))}
+        {Array.from({ length: pad }).map((_, index) => (
+          <div key={`pad-${index}`} />
+        ))}
+        {days.map((day) => {
+          const ratio = day.miles == null || max === min ? 0 : (day.miles - min) / (max - min);
+          const bg = !day.open ? "#faf7f2" : `rgba(184, 106, 50, ${0.85 - ratio * 0.55})`;
+          const color = !day.open || ratio < 0.45 ? "#1c1612" : "#f3efe6";
+          return (
+            <div key={day.date} className="min-h-[76px] border border-line/80 p-1.5 text-left" style={{ background: bg, color }}>
+              <p className="text-xs">{Number(day.date.slice(8, 10))}</p>
+              <p className="mt-1 font-serif text-sm">{day.open && day.miles ? `${Math.round(day.miles / 1000)}k` : "—"}</p>
+              <p className="text-[10px] opacity-80">{day.programName?.split(" ")[0] ?? ""}</p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ProgramBoard({ rows }: { rows: ProgramQuote[] }) {
+  return (
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-4">
+        <h2 className="font-serif text-2xl">Every program on this trip</h2>
+        <p className="text-sm text-mute">Miles + tax per person. Open seats first.</p>
+      </div>
+      <div className="overflow-x-auto border border-line bg-paper">
+        <table className="min-w-[640px] w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-line bg-sand/50">
+              <th className="px-3 py-3">Program</th>
+              <th className="px-3 py-3">Miles</th>
+              <th className="px-3 py-3">Tax</th>
+              <th className="px-3 py-3">Value</th>
+              <th className="px-3 py-3">Seat</th>
+              <th className="px-3 py-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.programId} className="border-b border-line/70">
+                <td className="px-3 py-3">
+                  <span className="block font-medium">{row.carrier}</span>
+                  <span className="text-xs text-mute">{row.programName}</span>
+                </td>
+                <td className="px-3 py-3">{row.miles ? `${row.miles.toLocaleString("en-GB")} ${row.unit}` : "—"}</td>
+                <td className="px-3 py-3">{eur(row.taxes)}</td>
+                <td className="px-3 py-3">{row.cpp != null ? `${row.cpp.toFixed(1)}¢` : "—"}</td>
+                <td className="px-3 py-3">{row.open ? <span className="text-copper">Open</span> : <span className="text-mute">Waitlist</span>}</td>
+                <td className="px-3 py-3 text-right">
+                  <a className="text-copper" href={row.searchUrl} target="_blank" rel="noreferrer">
+                    Airline
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
