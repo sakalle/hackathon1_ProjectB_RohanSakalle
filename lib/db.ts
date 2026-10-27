@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import Database from "better-sqlite3";
@@ -177,6 +178,10 @@ function ensureAccounts(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS chat_owner_idx ON chat_messages (owner_id, created_at);
   `);
+  const columns = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (!columns.some((column) => column.name === "password_hash")) {
+    db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
+  }
 }
 
 export interface AppUser {
@@ -186,16 +191,47 @@ export interface AppUser {
   picture: string | null;
 }
 
-export function upsertGoogleUser(input: { sub: string; email: string; name: string; picture?: string | null }) {
+export function loginWithPassword(input: { email: string; password: string; name: string }): AppUser {
+  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim().slice(0, 80);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Use a real email address.");
+  if (input.password.length < 6) throw new Error("Use a password of at least 6 characters.");
+  if (name.length < 2) throw new Error("Add your name.");
   const db = getDb();
-  const existing = db.prepare("SELECT id FROM users WHERE google_sub = ?").get(input.sub) as { id: string } | undefined;
-  const id = existing?.id ?? `usr_${crypto.randomUUID().slice(0, 8)}`;
+  const existing = db.prepare("SELECT id, password_hash FROM users WHERE email = ?").get(email) as
+    | { id: string; password_hash: string | null }
+    | undefined;
+  if (existing?.password_hash) {
+    if (!passwordMatches(input.password, existing.password_hash)) throw new Error("That password does not match this email.");
+    db.prepare("UPDATE users SET name = ? WHERE id = ?").run(name, existing.id);
+    return getUser(existing.id)!;
+  }
+  if (existing && !existing.password_hash) {
+    const hash = hashPassword(input.password);
+    db.prepare("UPDATE users SET name = ?, password_hash = ? WHERE id = ?").run(name, hash, existing.id);
+    return getUser(existing.id)!;
+  }
+  const id = `usr_${crypto.randomUUID().slice(0, 8)}`;
   db.prepare(
-    `INSERT INTO users (id, google_sub, email, name, picture, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(google_sub) DO UPDATE SET email = excluded.email, name = excluded.name, picture = excluded.picture`,
-  ).run(id, input.sub, input.email, input.name.slice(0, 80), input.picture ?? null, new Date().toISOString());
+    `INSERT INTO users (id, google_sub, email, name, picture, created_at, password_hash)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).run(id, `local:${email}`, email, name, null, new Date().toISOString(), hashPassword(input.password));
   return getUser(id)!;
+}
+
+function hashPassword(password: string) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 32).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function passwordMatches(password: string, stored: string) {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const next = crypto.scryptSync(password, salt, 32);
+  const previous = Buffer.from(hash, "hex");
+  if (next.length !== previous.length) return false;
+  return crypto.timingSafeEqual(next, previous);
 }
 
 export function createSession(userId: string) {

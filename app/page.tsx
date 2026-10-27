@@ -31,7 +31,11 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1fr_1.05fr] md:px-6 md:py-16">
           <div className="flex flex-col justify-center">
             <p className="eyebrow text-[#e0b48a]">Compare every program · then book</p>
-            <h1 className="mt-5 font-serif text-5xl leading-[0.95] md:text-7xl">Same trip. Much less money.</h1>
+            <svg className="mt-4 h-6 w-40" viewBox="0 0 160 24" aria-hidden="true">
+              <path className="route-dash" d="M2 12 H148" fill="none" stroke="#e0b48a" strokeWidth="2" />
+              <circle cx="152" cy="12" r="4" fill="#b86a32" />
+            </svg>
+            <h1 className="rise mt-5 font-serif text-5xl leading-[0.95] md:text-7xl">Same trip. Much less money.</h1>
             <p className="mt-6 max-w-md text-lg text-cream/75">
               Normal fare against the hacked fare. Miles, nearby airports, smarter routes — then you book, or follow the steps.
             </p>
@@ -50,9 +54,9 @@ export default function HomePage() {
                 <>
                   An account is optional.{" "}
                   <Link href="/login" className="text-[#e0b48a] underline">
-                    Sign in with Google
+                    Sign in
                   </Link>{" "}
-                  if you want your name on the trip.
+                  with your email if you want your name on the trip.
                 </>
               )}
             </p>
@@ -65,6 +69,22 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto grid max-w-6xl gap-3 px-4 py-8 md:grid-cols-3 md:px-6">
+        {[
+          ["/photos/madrid.jpg", "Madrid", "Where the sample trip starts"],
+          ["/photos/newyork.jpg", "New York", "The fare most people pay"],
+          ["/photos/lisbon.jpg", "Lisbon", "A stop that often costs less"],
+        ].map(([src, city, line], index) => (
+          <figure key={city} className="photo-frame rise border border-line bg-paper" style={{ animationDelay: `${index * 0.12}s` }}>
+            <img src={src} alt="" className="h-52 w-full" />
+            <figcaption className="px-4 py-3">
+              <span className="block font-serif text-2xl">{city}</span>
+              <span className="text-sm text-mute">{line}</span>
+            </figcaption>
+          </figure>
+        ))}
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-4 px-4 py-12 md:grid-cols-3 md:px-6">

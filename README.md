@@ -22,7 +22,7 @@ Open http://localhost:3000. SQLite is created at `data/milla.db` on first launch
 - **Explorer** (`/explore`) — cities the wallet can actually book, including 1:1 bank transfers
 - **Transfers** (`/transfers`) — bank to airline matrix
 - **Miles** (`/wallet`) and **Trips** (`/trips`) — balances, saved options, bookings, running total
-- **Sign in** (`/login`) — optional Google account. Guests can search and book
+- **Sign in** (`/login`) — optional name, email, and password. Guests can search and book
 - **Ask Milla** — the button on every page. It answers from the wallet, the latest search, and how booking works
 
 Cash tickets confirm inside the app. Award tickets open a step list with the airline's site.
@@ -45,9 +45,9 @@ Start on the home page. The sample wallet is already loaded. Leave flexible date
 
 If the room is slow, skip Explorer and end on the booking reference.
 
-## Google sign-in
+## Sign-in
 
-The login page asks for a Google ID, such as `name@gmail.com`, and stores that account with a session cookie. It does not replace the sample wallet. A Google account popup is also available when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set in `.env.local`. The redirect URI for that popup is `http://localhost:3000/api/auth/callback`.
+The login page asks for a name, an email, and a password. The password is stored as a hash. The same email signs that person back in. It does not replace the sample wallet. Guests can still search and book.
 
 ## Duffel
 
@@ -57,7 +57,7 @@ Put a Duffel test access token in `.env.local` as `DUFFEL_ACCESS_TOKEN` and rest
 
 SQLite at `data/milla.db` already stores the trip side: `profile`, `loyalty`, `searches`, `saved_trips`, `alerts`, `bookings`. Accounts add `users`, `sessions`, and `chat_messages`.
 
-Routes: `/api/search`, `/api/wallet`, `/api/bookings`, `/api/saved`, `/api/alerts`, `/api/parse`, `/api/auth/google`, `/api/auth/callback`, `/api/auth/logout`, `/api/chat`.
+Routes: `/api/search`, `/api/wallet`, `/api/bookings`, `/api/saved`, `/api/alerts`, `/api/parse`, `/api/auth/login`, `/api/auth/logout`, `/api/chat`.
 
 Prices are calculated in the app, then saved. A card is checked and only the last four digits are kept. Alerts are stored here. They are not emailed. One computer shares one wallet, so a guest and a signed-in person see the same miles on this machine.
 

@@ -3,10 +3,6 @@ import { deleteSession, getUserBySession, type AppUser } from "./db";
 
 const SESSION = "milla_session";
 
-export function googleReady() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-}
-
 export function currentUser(): AppUser | null {
   const token = cookies().get(SESSION)?.value;
   if (!token) return null;

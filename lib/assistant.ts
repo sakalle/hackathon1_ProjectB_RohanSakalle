@@ -22,7 +22,7 @@ export function answerTripQuestion(message: string, ctx: AssistantContext): stri
   if (/log\s*in|sign\s*in|google|account|oauth/.test(q)) {
     return ctx.signedIn
       ? `You are signed in${who ? ` as ${who}` : ""}. Logging out does not delete the miles or trips on this computer.`
-      : "Sign-in is optional. Continue with Google from the home page or the Sign in link if you want your name on the trip. Search, the wallet, and booking all work as a guest.";
+      : "Sign-in is optional. Use your name, email, and a password from the Sign in link if you want your name on the trip. Search, the wallet, and booking all work as a guest.";
   }
   if (/card|4242|pay|checkout/.test(q)) {
     return "Cash fares are booked inside Milla. Use the demo card 4242 4242 4242 4242, any future expiry, and any CVC. Only the last four digits are stored. A live Duffel fare is paid from the Duffel test balance, so that card is not charged and is not sent to Duffel. Award seats are not charged here: you follow the steps and open the airline.";
