@@ -144,7 +144,19 @@ export interface PricedLeg {
   carrier: string;
 }
 
+const pricedLegCache = new Map<string, PricedLeg>();
+
 export function publishedLeg(from: string, to: string, date: string, cabin: Cabin, today: string): PricedLeg {
+  const key = `${from}|${to}|${date}|${cabin}|${today}`;
+  const cached = pricedLegCache.get(key);
+  if (cached) return cached;
+  const priced = pricePublishedLeg(from, to, date, cabin, today);
+  if (pricedLegCache.size > 3000) pricedLegCache.clear();
+  pricedLegCache.set(key, priced);
+  return priced;
+}
+
+function pricePublishedLeg(from: string, to: string, date: string, cabin: Cabin, today: string): PricedLeg {
   const origin = requireAirport(from);
   const dest = requireAirport(to);
   if (hasNonstop(origin, dest)) {
@@ -334,24 +346,45 @@ export function buildSlice(
   };
 }
 
-export interface AwardQuote {
+export interface AwardPrice {
   programId: string;
   miles: number;
   taxes: number;
   offPeak: boolean;
   open: boolean;
   date: string;
+}
+
+export interface AwardQuote extends AwardPrice {
   slices: FlightSlice[];
 }
 
-export function awardQuote(
+const awardPriceCache = new Map<string, AwardPrice | null>();
+
+export function awardPrice(
   programId: string,
   from: string,
   to: string,
   date: string,
   cabin: Cabin,
   allowDateShift: boolean,
-): AwardQuote | null {
+): AwardPrice | null {
+  const key = `${programId}|${from}|${to}|${date}|${cabin}|${allowDateShift ? 1 : 0}`;
+  if (awardPriceCache.has(key)) return awardPriceCache.get(key) ?? null;
+  const priced = computeAwardPrice(programId, from, to, date, cabin, allowDateShift);
+  if (awardPriceCache.size > 4000) awardPriceCache.clear();
+  awardPriceCache.set(key, priced);
+  return priced;
+}
+
+function computeAwardPrice(
+  programId: string,
+  from: string,
+  to: string,
+  date: string,
+  cabin: Cabin,
+  allowDateShift: boolean,
+): AwardPrice | null {
   const program = programById(programId);
   const chart = CHARTS[programId];
   if (!program || !chart || program.kind !== "airline") return null;
@@ -366,17 +399,23 @@ export function awardQuote(
   if (cabin === "business") miles = Math.round((miles * 2) / 500) * 500;
   const seatDate = allowDateShift ? firstOpenDate(programId, from, to, date, cabin) : date;
   const open = awardOpen(programId, from, to, seatDate, cabin);
-  if (!open) return { programId, miles, taxes: taxesFor(programId, km), offPeak, open: false, date, slices: [] };
-  const slices = awardSlices(program, from, to, seatDate, cabin);
-  return {
-    programId,
-    miles,
-    taxes: taxesFor(programId, km),
-    offPeak,
-    open: true,
-    date: seatDate,
-    slices,
-  };
+  return { programId, miles, taxes: taxesFor(programId, km), offPeak, open, date: open ? seatDate : date };
+}
+
+export function awardQuote(
+  programId: string,
+  from: string,
+  to: string,
+  date: string,
+  cabin: Cabin,
+  allowDateShift: boolean,
+): AwardQuote | null {
+  const priced = awardPrice(programId, from, to, date, cabin, allowDateShift);
+  if (!priced) return null;
+  if (!priced.open) return { ...priced, slices: [] };
+  const program = programById(programId);
+  if (!program) return null;
+  return { ...priced, slices: awardSlices(program, from, to, priced.date, cabin) };
 }
 
 function isOffPeak(date: string) {

@@ -1,6 +1,6 @@
 import { AIRPORTS, requireAirport } from "./airports";
 import { addDays } from "./dates";
-import { awardQuote, publishedLeg } from "./pricing";
+import { awardPrice, segmentFare } from "./pricing";
 import { TRANSFERS, airlinePrograms, airlineSearchUrl, banksThatTransferTo, programById } from "./programs";
 import type { AwardDay, Cabin, ProgramQuote, SearchLegInput } from "./types";
 
@@ -12,7 +12,7 @@ export function programBoard(legs: SearchLegInput[], cabin: Cabin, cashPerAdult:
       let taxes = 0;
       let open = true;
       for (const leg of legs) {
-        const quote = awardQuote(program.id, leg.origin, leg.destination, leg.date, cabin, true);
+        const quote = awardPrice(program.id, leg.origin, leg.destination, leg.date, cabin, true);
         if (!quote || !quote.open) {
           open = false;
           miles += quote?.miles ?? 0;
@@ -47,10 +47,10 @@ export function awardMonth(legs: SearchLegInput[], cabin: Cabin, today: string):
     const date = addDays(start, offset);
     if (date.slice(0, 7) !== start.slice(0, 7)) break;
     if (date < today) continue;
-    const cash = publishedLeg(first.origin, first.destination, date, cabin, today).price;
+    const cash = segmentFare(first.origin, first.destination, date, cabin, today);
     let best: { miles: number; taxes: number; programId: string; programName: string } | null = null;
-    for (const program of airlinePrograms().filter((item) => ["iberia", "ba", "virgin", "flyingblue", "qatar"].includes(item.id))) {
-      const quote = awardQuote(program.id, first.origin, first.destination, date, cabin, false);
+    for (const program of airlinePrograms()) {
+      const quote = awardPrice(program.id, first.origin, first.destination, date, cabin, false);
       if (!quote || !quote.open) continue;
       if (!best || quote.miles < best.miles) best = { miles: quote.miles, taxes: quote.taxes, programId: program.id, programName: program.name };
     }
@@ -88,11 +88,11 @@ export function exploreFromWallet(origin: string, cabin: Cabin, balances: Record
   for (const dest of dests) {
     let best: ExploreHit | null = null;
     for (const program of airlinePrograms()) {
-      const quote = awardQuote(program.id, home.iata, dest.iata, date, cabin, true);
+      const quote = awardPrice(program.id, home.iata, dest.iata, date, cabin, true);
       if (!quote || !quote.open) continue;
       const have = (balances[program.id] ?? 0) + transferable(program.id, balances);
       if (have < quote.miles) continue;
-      const cash = publishedLeg(home.iata, dest.iata, date, cabin, date).price;
+      const cash = segmentFare(home.iata, dest.iata, date, cabin, date);
       const cpp = ((cash - quote.taxes) / quote.miles) * 100;
       if (cpp < 0.8) continue;
       const transferFrom = (balances[program.id] ?? 0) >= quote.miles ? null : firstBank(program.id, balances);

@@ -149,7 +149,116 @@ export function getDb() {
     }
     globalForDb.milla = db;
   }
+  ensureAccounts(globalForDb.milla);
   return globalForDb.milla;
+}
+
+function ensureAccounts(db: Database.Database) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      google_sub TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL,
+      picture TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      expires_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS chat_owner_idx ON chat_messages (owner_id, created_at);
+  `);
+}
+
+export interface AppUser {
+  id: string;
+  email: string;
+  name: string;
+  picture: string | null;
+}
+
+export function upsertGoogleUser(input: { sub: string; email: string; name: string; picture?: string | null }) {
+  const db = getDb();
+  const existing = db.prepare("SELECT id FROM users WHERE google_sub = ?").get(input.sub) as { id: string } | undefined;
+  const id = existing?.id ?? `usr_${crypto.randomUUID().slice(0, 8)}`;
+  db.prepare(
+    `INSERT INTO users (id, google_sub, email, name, picture, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(google_sub) DO UPDATE SET email = excluded.email, name = excluded.name, picture = excluded.picture`,
+  ).run(id, input.sub, input.email, input.name.slice(0, 80), input.picture ?? null, new Date().toISOString());
+  return getUser(id)!;
+}
+
+export function createSession(userId: string) {
+  const id = crypto.randomUUID();
+  const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  getDb().prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)").run(id, userId, expires);
+  return id;
+}
+
+export function getUserBySession(sessionId: string): AppUser | null {
+  const row = getDb()
+    .prepare(
+      `SELECT u.id, u.email, u.name, u.picture, s.expires_at
+       FROM sessions s JOIN users u ON u.id = s.user_id
+       WHERE s.id = ?`,
+    )
+    .get(sessionId) as { id: string; email: string; name: string; picture: string | null; expires_at: string } | undefined;
+  if (!row) return null;
+  if (row.expires_at < new Date().toISOString()) {
+    getDb().prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+    return null;
+  }
+  return { id: row.id, email: row.email, name: row.name, picture: row.picture };
+}
+
+export function deleteSession(sessionId: string) {
+  getDb().prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+}
+
+function getUser(id: string): AppUser | null {
+  const row = getDb().prepare("SELECT id, email, name, picture FROM users WHERE id = ?").get(id) as AppUser | undefined;
+  return row ?? null;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  body: string;
+  createdAt: string;
+}
+
+export function listChat(ownerId: string, limit = 20): ChatMessage[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT id, role, body, created_at FROM chat_messages WHERE owner_id = ? ORDER BY created_at DESC LIMIT ?`,
+    )
+    .all(ownerId, limit) as { id: string; role: string; body: string; created_at: string }[];
+  return rows
+    .reverse()
+    .map((row) => ({
+      id: row.id,
+      role: row.role === "assistant" ? "assistant" : "user",
+      body: row.body,
+      createdAt: row.created_at,
+    }));
+}
+
+export function addChat(ownerId: string, role: "user" | "assistant", body: string) {
+  const id = `chat_${crypto.randomUUID().slice(0, 8)}`;
+  getDb()
+    .prepare("INSERT INTO chat_messages (id, owner_id, role, body, created_at) VALUES (?, ?, ?, ?, ?)")
+    .run(id, ownerId, role, body.slice(0, 2000), new Date().toISOString());
+  return id;
 }
 
 export function getProfile() {

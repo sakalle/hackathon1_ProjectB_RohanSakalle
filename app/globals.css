@@ -117,3 +117,10 @@ body {
   border-color: #b86a32;
   color: #b86a32;
 }
+
+.chip-on,
+.chip-on:hover {
+  border-color: #2a231c;
+  background: #2a231c;
+  color: #f3efe6;
+}

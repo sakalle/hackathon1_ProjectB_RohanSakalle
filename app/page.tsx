@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { QuickForm } from "@/components/QuickForm";
+import { currentUser } from "@/lib/auth";
 import { addDays, todayISO } from "@/lib/dates";
 import { listLoyalty, listSearches } from "@/lib/db";
 import { eur, prettyDate } from "@/lib/format";
@@ -14,6 +15,7 @@ export default function HomePage() {
     ret: addDays(today, 37),
   };
   const recent = listSearches(4);
+  const user = currentUser();
   const miles = listLoyalty()
     .map((row) => {
       const program = programById(row.program_id);
@@ -41,6 +43,19 @@ export default function HomePage() {
                 Full trip plan
               </Link>
             </div>
+            <p className="mt-5 max-w-md text-sm text-cream/70">
+              {user ? (
+                <>Signed in as {user.name.split(" ")[0]}. You can log out any time. The miles stay on this computer.</>
+              ) : (
+                <>
+                  An account is optional.{" "}
+                  <Link href="/login" className="text-[#e0b48a] underline">
+                    Sign in with Google
+                  </Link>{" "}
+                  if you want your name on the trip.
+                </>
+              )}
+            </p>
           </div>
           <div className="bg-cream p-5 text-ink shadow-card md:p-7">
             <p className="eyebrow">Search 10 programs at once</p>
@@ -55,7 +70,7 @@ export default function HomePage() {
       <section className="mx-auto grid max-w-6xl gap-4 px-4 py-12 md:grid-cols-3 md:px-6">
         {[
           ["21-style board", "Every loyalty program priced on the same route, with taxes and cents per point."],
-          ["Award month", "A heatmap of the cheapest days to fly on miles, not only cash."],
+          ["Award month", "Ten programs on one outbound calendar. Tap a day and the trip reprices."],
           ["Then you book", "Cash tickets inside the app. Awards with a step-by-step airline path."],
         ].map(([title, copy]) => (
           <div key={title} className="lift border border-line bg-paper p-6">

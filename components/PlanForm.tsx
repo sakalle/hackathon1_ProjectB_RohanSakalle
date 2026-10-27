@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AirportField } from "./AirportField";
+import { CabinPills } from "./CabinPills";
 import type { Cabin } from "@/lib/types";
 
 interface LegDraft {
@@ -108,18 +109,11 @@ export function PlanForm({ start, next }: { start: string; next: string }) {
           Add a flight
         </button>
       )}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <NumberField label="Adults" value={adults} min={1} max={9} onChange={setAdults} />
         <NumberField label="Children" value={children} min={0} max={8} onChange={setChildren} />
-        <label>
-          <span className="eyebrow">Cabin</span>
-          <select className="field mt-2" value={cabin} onChange={(event) => setCabin(event.target.value as Cabin)}>
-            <option value="economy">Economy</option>
-            <option value="premium">Premium economy</option>
-            <option value="business">Business</option>
-          </select>
-        </label>
       </div>
+      <CabinPills value={cabin} onChange={setCabin} />
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={flexible} onChange={(event) => setFlexible(event.target.checked)} />

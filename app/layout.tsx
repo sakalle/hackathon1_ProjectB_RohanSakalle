@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 import "./globals.css";
+import { Assistant } from "@/components/Assistant";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         {children}
         <Footer />
+        <Assistant />
       </body>
     </html>
   );

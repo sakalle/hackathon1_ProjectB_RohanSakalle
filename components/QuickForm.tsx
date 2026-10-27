@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AirportField } from "./AirportField";
+import { CabinPills } from "./CabinPills";
 import type { Cabin } from "@/lib/types";
 
 export function QuickForm({
@@ -124,21 +125,7 @@ export function QuickForm({
         <Stepper label="Adults" value={adults} min={1} max={9} onChange={setAdults} />
         <Stepper label="Children" value={children} min={0} max={8} onChange={setChildren} />
       </div>
-      <div>
-        <span className="eyebrow">Cabin</span>
-        <div className="mt-2 grid grid-cols-3 border border-line">
-          {(["economy", "premium", "business"] as Cabin[]).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setCabin(option)}
-              className={`px-2 py-3 text-sm ${cabin === option ? "bg-brown text-cream" : "bg-white/50"}`}
-            >
-              {option === "premium" ? "Premium" : option === "business" ? "Business" : "Economy"}
-            </button>
-          ))}
-        </div>
-      </div>
+      <CabinPills value={cabin} onChange={setCabin} />
       <div className="grid gap-3 sm:grid-cols-2">
         <Toggle on={flexible} setOn={setFlexible} title="Flexible dates" detail="Check three days either side." />
         <Toggle on={nearby} setOn={setNearby} title="Nearby airports" detail="Include the taxi in the saving." />

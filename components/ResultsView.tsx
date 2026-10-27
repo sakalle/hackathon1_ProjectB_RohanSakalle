@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { cityLabel } from "@/lib/airports";
+import { addDays, daysBetween } from "@/lib/dates";
 import { cabinLabel, cppLabel, eur, formatDuration, pct, pointsLabel, prettyDate, shortDate, weekday } from "@/lib/format";
 import type { AwardDay, BuiltSearch, Offer, ProgramQuote, SearchInput } from "@/lib/types";
 
@@ -35,7 +36,33 @@ export function ResultsView({
   const live = search.offers.filter((offer) => !offer.locked);
   const locked = search.offers.filter((offer) => offer.locked);
   const best = live.find((offer) => offer.recommended) ?? live[0];
+  const router = useRouter();
   const [filter, setFilter] = useState<"all" | "cash" | "miles" | "route">("all");
+  const [shifting, setShifting] = useState("");
+  const [shiftError, setShiftError] = useState("");
+
+  async function searchDay(date: string) {
+    const origin = search.input.legs[0]?.date;
+    if (!origin || date === origin || shifting) return;
+    const delta = daysBetween(origin, date);
+    setShiftError("");
+    setShifting(date);
+    const response = await fetch("/api/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...search.input,
+        legs: search.input.legs.map((leg) => ({ ...leg, date: addDays(leg.date, delta) })),
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setShifting("");
+      setShiftError(data.error ?? "That day could not be priced.");
+      return;
+    }
+    router.push(`/results/${data.id}`);
+  }
   const shown = live.filter((offer) => {
     if (filter === "cash") return offer.bookPath === "cash";
     if (filter === "miles") return offer.bookPath !== "cash";
@@ -70,7 +97,10 @@ export function ResultsView({
         <PriceBlock label="Hacked price" amount={search.bestPrice} detail={best ? best.title : "No cheaper option held up."} />
       </section>
 
-      {search.awardMonth.length > 0 && <AwardHeatmap days={search.awardMonth} />}
+      {search.awardMonth.length > 0 && (
+        <AwardHeatmap days={search.awardMonth} busy={shifting} onPick={searchDay} />
+      )}
+      {shiftError && <p className="text-sm text-copper">{shiftError}</p>}
       {search.programBoard.length > 0 && <ProgramBoard rows={search.programBoard} />}
 
       {search.calendar.length > 0 && (
@@ -101,7 +131,7 @@ export function ResultsView({
               ["miles", "Miles"],
               ["route", "Routes"],
             ] as const).map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setFilter(id)} className={`chip ${filter === id ? "border-ink bg-brown text-cream" : ""}`}>
+              <button key={id} type="button" onClick={() => setFilter(id)} className={`chip ${filter === id ? "chip-on" : ""}`}>
                 {label}
               </button>
             ))}
@@ -311,8 +341,21 @@ function OfferCard({
   );
 }
 
-function AwardHeatmap({ days }: { days: AwardDay[] }) {
-  const miles = days.map((day) => day.miles).filter((value): value is number => value != null);
+function AwardHeatmap({
+  days,
+  busy,
+  onPick,
+}: {
+  days: AwardDay[];
+  busy: string;
+  onPick: (date: string) => void;
+}) {
+  const openDays = days.filter((day) => day.open && day.miles != null);
+  const cheapest = openDays.reduce<AwardDay | null>((best, day) => {
+    if (!best || (day.miles ?? Infinity) < (best.miles ?? Infinity)) return day;
+    return best;
+  }, null);
+  const miles = openDays.map((day) => day.miles as number);
   const min = miles.length ? Math.min(...miles) : 0;
   const max = miles.length ? Math.max(...miles) : 1;
   const first = days[0]?.date;
@@ -320,10 +363,19 @@ function AwardHeatmap({ days }: { days: AwardDay[] }) {
   const label = first ? new Date(`${first}T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }) : "Month";
   return (
     <section>
-      <div className="mb-3 flex items-end justify-between gap-4">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <h2 className="font-serif text-2xl">Award calendar · {label}</h2>
-        <p className="text-sm text-mute">Open seats in miles. Darker is cheaper.</p>
+        <p className="text-sm text-mute">Outbound only. All 10 programs. Tap a day to reprice the trip.</p>
       </div>
+      {cheapest?.miles != null && (
+        <button type="button" onClick={() => onPick(cheapest.date)} className="mb-3 w-full bg-brown px-5 py-4 text-left text-cream">
+          <p className="eyebrow text-[#e0b48a]">Cheapest award this month</p>
+          <p className="mt-1 font-serif text-4xl">
+            {Math.round(cheapest.miles / 1000)}k {cheapest.programName?.split(" ")[0]}
+          </p>
+          <p className="mt-1 text-sm text-cream/75">{prettyDate(cheapest.date)} · tap to price the whole trip on this day</p>
+        </button>
+      )}
       <div className="grid grid-cols-7 gap-1 text-center text-[11px] uppercase tracking-wider text-mute">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <div key={day} className="py-1">
@@ -338,11 +390,18 @@ function AwardHeatmap({ days }: { days: AwardDay[] }) {
           const bg = !day.open ? "#faf7f2" : `rgba(184, 106, 50, ${0.85 - ratio * 0.55})`;
           const color = !day.open || ratio < 0.45 ? "#1c1612" : "#f3efe6";
           return (
-            <div key={day.date} className="min-h-[76px] border border-line/80 p-1.5 text-left" style={{ background: bg, color }}>
+            <button
+              key={day.date}
+              type="button"
+              disabled={Boolean(busy)}
+              onClick={() => onPick(day.date)}
+              className="min-h-[76px] border border-line/80 p-1.5 text-left disabled:opacity-60"
+              style={{ background: bg, color }}
+            >
               <p className="text-xs">{Number(day.date.slice(8, 10))}</p>
-              <p className="mt-1 font-serif text-sm">{day.open && day.miles ? `${Math.round(day.miles / 1000)}k` : "—"}</p>
-              <p className="text-[10px] opacity-80">{day.programName?.split(" ")[0] ?? ""}</p>
-            </div>
+              <p className="mt-1 font-serif text-sm">{busy === day.date ? "…" : day.open && day.miles ? `${Math.round(day.miles / 1000)}k` : "—"}</p>
+              <p className="truncate text-[10px] opacity-80">{day.programName?.split(" ")[0] ?? ""}</p>
+            </button>
           );
         })}
       </div>
@@ -351,9 +410,10 @@ function AwardHeatmap({ days }: { days: AwardDay[] }) {
 }
 
 function ProgramBoard({ rows }: { rows: ProgramQuote[] }) {
+  const best = rows.filter((row) => row.open && row.cpp != null).sort((a, b) => (b.cpp ?? 0) - (a.cpp ?? 0))[0];
   return (
     <section>
-      <div className="mb-3 flex items-end justify-between gap-4">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <h2 className="font-serif text-2xl">Every program on this trip</h2>
         <p className="text-sm text-mute">Miles + tax per person. Open seats first.</p>
       </div>
@@ -371,10 +431,16 @@ function ProgramBoard({ rows }: { rows: ProgramQuote[] }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.programId} className="border-b border-line/70">
+              <tr key={row.programId} className={`border-b border-line/70 ${row.programId === best?.programId ? "bg-[#f4e4d2]" : ""}`}>
                 <td className="px-3 py-3">
-                  <span className="block font-medium">{row.carrier}</span>
+                  <span className="block font-medium">
+                    {row.carrier}
+                    {row.programId === best?.programId ? " · best value" : ""}
+                  </span>
                   <span className="text-xs text-mute">{row.programName}</span>
+                  {row.transferableFrom.length > 0 && (
+                    <span className="mt-1 block text-xs text-mute">Transfer from {row.transferableFrom.join(", ")}</span>
+                  )}
                 </td>
                 <td className="px-3 py-3">{row.miles ? `${row.miles.toLocaleString("en-GB")} ${row.unit}` : "—"}</td>
                 <td className="px-3 py-3">{eur(row.taxes)}</td>

@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AirportField } from "./AirportField";
+import { CabinPills } from "./CabinPills";
 import { placeLabel } from "@/lib/airports";
-import type { Cabin, ParsedTrip } from "@/lib/types";
+import type { ParsedTrip } from "@/lib/types";
 
 const examples = [
   "Madrid to New York 18 Dec 2026 return 2 Jan 2027, 2 adults",
@@ -160,7 +161,7 @@ export function ImportStudio() {
               </div>
             ))}
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <label>
               <span className="eyebrow">Adults</span>
               <input className="field mt-2" type="number" min={1} max={9} value={parsed.adults} onChange={(event) => setParsed({ ...parsed, adults: Number(event.target.value) })} />
@@ -169,15 +170,8 @@ export function ImportStudio() {
               <span className="eyebrow">Children</span>
               <input className="field mt-2" type="number" min={0} max={8} value={parsed.children} onChange={(event) => setParsed({ ...parsed, children: Number(event.target.value) })} />
             </label>
-            <label>
-              <span className="eyebrow">Cabin</span>
-              <select className="field mt-2" value={parsed.cabin} onChange={(event) => setParsed({ ...parsed, cabin: event.target.value as Cabin })}>
-                <option value="economy">Economy</option>
-                <option value="premium">Premium economy</option>
-                <option value="business">Business</option>
-              </select>
-            </label>
           </div>
+          <CabinPills value={parsed.cabin} onChange={(cabin) => setParsed({ ...parsed, cabin })} />
           <p className="text-sm text-mute">
             {parsed.legs.map((leg) => `${placeLabel(leg.origin)} → ${placeLabel(leg.destination)}`).join(" · ")}
           </p>
