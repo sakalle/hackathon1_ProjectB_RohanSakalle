@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { publicOrigin } from "@/lib/auth";
 import { createSession, loginWithPassword } from "@/lib/db";
 
 export async function POST(request: Request) {
-  const origin = new URL(request.url).origin;
+  const origin = publicOrigin(request);
   const form = await request.formData();
   const email = String(form.get("email") ?? "");
   const password = String(form.get("password") ?? "");
